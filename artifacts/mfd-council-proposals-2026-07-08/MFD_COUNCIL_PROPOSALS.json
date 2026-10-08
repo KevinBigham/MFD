@@ -1,0 +1,694 @@
+{
+  "packetVersion": "1.0",
+  "briefFile": "00_MFD_COUNCIL_SHARED_BRIEF.md",
+  "generatedAt": "2026-07-08",
+  "workingRoot": "/Users/tkevinbigham/Downloads/MFD-main",
+  "evidenceBasis": [
+    {
+      "kind": "brief",
+      "file": "00_MFD_COUNCIL_SHARED_BRIEF.md",
+      "lines": "1-131",
+      "claim": "The council brief requires proposal scoring, complete gameplay-slice fields, evidence discipline, and use of schemas/MFD_COUNCIL_PROPOSAL_SCHEMA.json."
+    },
+    {
+      "kind": "current_ledger",
+      "file": "STATUS.md",
+      "lines": "1-40",
+      "claim": "The latest ledger records Patch 3.1 Team Window Read-Model and names Counterfactual FA/draft receipts as the best next slice."
+    },
+    {
+      "kind": "current_ledger",
+      "file": "RELEASE_CONVERGENCE.md",
+      "lines": "1-47",
+      "claim": "The current release ledger records CI release-gate wiring, green G1-G6 gates, and a remaining YELLOW G7 requiring one uninterrupted local pass plus remote proof."
+    },
+    {
+      "kind": "current_source",
+      "file": "packages/engine/src/config/difficulty.ts",
+      "lines": "1-73",
+      "claim": "The inspected source-truth save schema version is SAVE_VERSION = 36."
+    }
+  ],
+  "gapTriage": [
+    {
+      "briefGap": "Full release gate is not enforced in CI/deploy.",
+      "currentStatus": "partially-mitigated",
+      "basis": "RELEASE_CONVERGENCE.md now says CI has a dependent release-gate job, but G7 remains YELLOW until one uninterrupted local 36/36 pass and one remote proof exist.",
+      "proposalIds": ["g7-release-certificate"]
+    },
+    {
+      "briefGap": "No clean 25- or 50-year quality certificate.",
+      "currentStatus": "partially-mitigated",
+      "basis": "CODEX_IMPROVEMENT_PLAN.md now records opt-in goat-25y/goat-50y profiles with 0 high anomalies, but the public release certificate still needs a current default gate and remote proof.",
+      "proposalIds": ["g7-release-certificate"]
+    },
+    {
+      "briefGap": "Draft war-room trade acceptance can desynchronize pick assets and draft order.",
+      "currentStatus": "superseded",
+      "basis": "packages/engine/src/systems/draft-war-room.ts now validates live assets and updates draft-order ownership; draft-war-room and store tests cover accepted offers and no-partial-apply behavior.",
+      "proposalIds": []
+    },
+    {
+      "briefGap": "Generated draft offers can reference assets that are not truly transferable.",
+      "currentStatus": "superseded",
+      "basis": "draftTradeCandidates filters to hasSourceDraftOrderPick, future assets come from owned team.draftPicks, and current tests cover source-backed offers.",
+      "proposalIds": []
+    },
+    {
+      "briefGap": ".mfd backups omit emotional browser-local sidecars.",
+      "currentStatus": "superseded",
+      "basis": "STATUS.md records Patch 0.3 Backup Trust making Combined Backup the primary portable export/import path and classic .mfd advanced current-save-only recovery.",
+      "proposalIds": []
+    },
+    {
+      "briefGap": "Several long-history save fields and game results remain permissively validated.",
+      "currentStatus": "open",
+      "basis": "packages/engine/src/save/schema.ts still contains z.any islands for ScheduledGame.result, franchiseHistory, playerArchive, eventLog, weekSummaries, playoffBracket, and related long-history fields.",
+      "proposalIds": ["long-history-schema-hardening"]
+    },
+    {
+      "briefGap": "CPU strategy exists but lacks a durable player-facing intent history.",
+      "currentStatus": "partially-mitigated",
+      "basis": "CODEX_IMPROVEMENT_PLAN.md records saved-field intent ledger, market receipts, strategy-history display, and Team Window read-model work. Durable cross-window history remains a future schema-backed option.",
+      "proposalIds": ["shared-action-receipt-contract"]
+    },
+    {
+      "briefGap": "Trick plays are planned but not consumed by live simulation.",
+      "currentStatus": "open",
+      "basis": "GamePlanSetup labels trick plays as planning only, and trick-plays tests still guard that game-sim does not import executeTrickPlay or shouldCallTrickPlay.",
+      "proposalIds": ["trick-play-live-drive-integration"]
+    },
+    {
+      "briefGap": "Position coaches affect progression but lack a hiring/development lifecycle.",
+      "currentStatus": "superseded",
+      "basis": "Current store and CoachingStaff source expose initializePositionCoachesForTeam and upgradePositionCoachRole; the status/plan ledger records position-coach commands and season rollover tenure.",
+      "proposalIds": []
+    },
+    {
+      "briefGap": "Press conferences store quotes without meaningful downstream effects.",
+      "currentStatus": "open",
+      "basis": "PressConferenceModal still says Public quote only and No gameplay change; respondToPressConference only writes selectedTier and selectedResponse.",
+      "proposalIds": ["press-conference-low-stakes-consequence"]
+    },
+    {
+      "briefGap": "Inbox read state is not durable.",
+      "currentStatus": "open",
+      "basis": "InboxTriage source rows say selectedMsg/filter are local only and durable read receipts remain outside the route until GameState exposes a saved receipt field.",
+      "proposalIds": ["durable-inbox-read-receipts"]
+    },
+    {
+      "briefGap": "Formation-aware lineup validation is incomplete.",
+      "currentStatus": "open",
+      "basis": "DepthChart currently counts starters by position targets; no formation package validation is surfaced in the inspected route slice.",
+      "proposalIds": ["formation-aware-lineup-validation"]
+    },
+    {
+      "briefGap": "Major actions do not share one consistent receipt contract.",
+      "currentStatus": "partially-mitigated",
+      "basis": "Many route-local receipts have shipped, but acceptTradeOffer still returns an EngineOutput with empty events and consequences after mutating rosters, news, social feed, and press conference queues.",
+      "proposalIds": ["shared-action-receipt-contract"]
+    },
+    {
+      "briefGap": "Existing progressive-nav metadata is not used to reduce overload.",
+      "currentStatus": "partially-mitigated",
+      "basis": "The UI/UX convergence ledger records exposing static routes and using navigation/unlock metadata; further progressive disclosure is product-tuning, not a top current risk.",
+      "proposalIds": []
+    },
+    {
+      "briefGap": "Dynasty memory is split among routes and sidecars.",
+      "currentStatus": "partially-mitigated",
+      "basis": "Combined backup, dynasty callbacks, session recap, draft follow-through, and Game Day player-arc callbacks reduce the split. Remaining memory work should be tied to specific routes or saved history schemas.",
+      "proposalIds": ["long-history-schema-hardening"]
+    },
+    {
+      "briefGap": "The game has lists and archives but does not consistently author era stories back to the player.",
+      "currentStatus": "partially-mitigated",
+      "basis": "Recent ledgers record callbacks/session recap and many read-model surfaces. This stays a later content/system compounding theme unless a concrete source gap is re-confirmed.",
+      "proposalIds": []
+    },
+    {
+      "briefGap": "Player arcs, grudges, agents, mentorships, injuries, playoff failures, and comeback seasons do not recur strongly enough at emotional moments.",
+      "currentStatus": "not-ranked-now",
+      "basis": "This is directionally valid, but the inspected current ledgers already shipped several callback/read-model slices. Rank concrete remaining source gaps after the higher-trust items.",
+      "proposalIds": []
+    },
+    {
+      "briefGap": "Direct-only history routes are easy to miss.",
+      "currentStatus": "partially-mitigated",
+      "basis": "UI/UX convergence exposed all static routes through the app shell and left only dynamic player routes contextual. Remaining CTAs should be event-specific.",
+      "proposalIds": []
+    }
+  ],
+  "proposals": [
+    {
+      "id": "trick-play-live-drive-integration",
+      "title": "Trick Play Live-Drive Integration",
+      "summary": "Consume the existing saved weekly-prep trick-play selections inside the live game drive loop with bounded frequency, seeded RNG, and a postgame receipt. This turns a high-emotion planning choice into a visible football consequence without adding a new save island.",
+      "briefAlignment": ["consequence", "trust", "memory", "clarity"],
+      "complexity": "M",
+      "confidence": "high",
+      "recommendedDisposition": "now",
+      "scoring": {
+        "playerImpact": 9,
+        "trustImprovement": 7,
+        "intelligenceExplainability": 3,
+        "consequenceStrength": 9,
+        "dynastyMemoryCompounding": 7,
+        "reuseOfExistingSystems": 8,
+        "technicalFeasibility": 6,
+        "deterministicTestability": 7,
+        "saveMigrationSafety": 8,
+        "cognitiveLoadEffect": 7,
+        "total": 71
+      },
+      "evidence": [
+        {
+          "kind": "audit",
+          "file": "MFD_AI_SIM_AUDIT.md",
+          "lines": "34-46",
+          "claim": "Audit finding A02 says trick plays are not part of live game simulation.",
+          "quotedSourceEvidence": "GamePlanSetup.tsx:626-627, trick-plays.test.ts:198-230"
+        },
+        {
+          "kind": "current_source",
+          "file": "apps/web/src/features/game-plan/GamePlanSetup.tsx",
+          "lines": "138-146, 626-627",
+          "claim": "The route labels trick-play count as planning-only and names executeTrickPlay and shouldCallTrickPlay as not live-drive consumers."
+        },
+        {
+          "kind": "current_source",
+          "file": "packages/engine/src/systems/trick-plays.ts",
+          "lines": "188-267",
+          "claim": "Existing deterministic helpers already execute trick plays and decide call frequency from injected RNG and game context."
+        }
+      ],
+      "assumptions": [
+        "The first safe slice can consume already-saved WeeklyPrepPlan.trickPlays rather than adding new persistent fields.",
+        "Postgame receipt can use existing game result or GameDay package presentation before adding a new long-term archive field."
+      ],
+      "falsificationEvidence": [
+        "A source check showing game-sim already imports and calls executeTrickPlay or shouldCallTrickPlay during live drives.",
+        "A passing test that proves a saved trickPlay selection can alter a same-seed game result and produce a visible postgame receipt."
+      ],
+      "sliceDefinition": {
+        "playerMomentOrCpuTrigger": "Player saves Weekly Prep with one or more trick plays before simming the next user-team game.",
+        "decisionOrPolicy": "A planned trick play may be called at most a small bounded number of times per game, using existing shouldCallTrickPlay gating plus coach/team eligibility.",
+        "stateRead": "Read saved weekly prep plan, selected trick play ids, team staff gameplan rating/traits, game score/quarter/playoff context, and existing drive RNG channel.",
+        "stateMutation": "Mutate only normal game result/play-by-play fields and existing postgame receipt surfaces. Do not add GameState fields in the first slice unless the receipt must persist beyond existing result data.",
+        "deterministicResolutionRules": "All stochastic calls use the established seeded engine RNG path. Same seed plus same prep choices must produce the same call/no-call, yards, fumble, touchdown, and commentary.",
+        "immediateReceipt": "Game Day recap and/or post-week package shows a Trick Play Receipt with play name, context, success/failure, yards/turnover/touchdown, and source plan.",
+        "laterCallback": "If existing named-game or game-day memory systems can read the saved receipt, allow a later recap/callback row. Otherwise defer deeper memory to a second schema-backed slice.",
+        "saveAndMigrationImpact": "Prefer no save migration by deriving from existing weekly prep and existing game result/package payloads. If a new persistent receipt array is needed, require type, Zod schema, migration, seed default, fixtures, and old-save tests.",
+        "existingRouteAndSystemIntegrations": [
+          "packages/engine/src/systems/trick-plays.ts",
+          "packages/engine/src/systems/game-sim.ts",
+          "apps/web/src/features/game-plan/GamePlanSetup.tsx",
+          "apps/web/src/features/game-day/GameDayRecap.tsx"
+        ],
+        "tests": [
+          "packages/engine/src/systems/trick-plays.test.ts",
+          "packages/engine/src/systems/game-sim*.test.ts focused same-seed coverage",
+          "apps/web/src/features/game-day/GameDayRecap.test.tsx receipt rendering",
+          "bash scripts/check-math-random.sh",
+          "pnpm test:perft or direct playtest equivalent because sim behavior changes"
+        ],
+        "acceptanceMetrics": [
+          "Same seed and same prep generate byte-stable trick-play outcomes in focused tests.",
+          "No Math.random hits are introduced.",
+          "Trick-play call rate remains within a documented small sanity range.",
+          "Postgame receipt appears only when a trick play is actually consumed."
+        ],
+        "rollbackBoundary": "Revert the game-sim integration, receipt UI/tests, and any docs. Existing saved weekly-prep trickPlay arrays remain valid and harmless because the helpers already existed."
+      }
+    },
+    {
+      "id": "durable-inbox-read-receipts",
+      "title": "Durable Inbox Read Receipts",
+      "summary": "Let players clear regenerated inbox rows across route visits with a scoped browser-local receipt map keyed by dynasty and stable message id. This improves weekly clarity while avoiding a v36 GameState migration.",
+      "briefAlignment": ["clarity", "trust", "memory"],
+      "complexity": "S",
+      "confidence": "high",
+      "recommendedDisposition": "now",
+      "scoring": {
+        "playerImpact": 7,
+        "trustImprovement": 8,
+        "intelligenceExplainability": 2,
+        "consequenceStrength": 3,
+        "dynastyMemoryCompounding": 5,
+        "reuseOfExistingSystems": 7,
+        "technicalFeasibility": 9,
+        "deterministicTestability": 10,
+        "saveMigrationSafety": 8,
+        "cognitiveLoadEffect": 9,
+        "total": 68
+      },
+      "evidence": [
+        {
+          "kind": "audit",
+          "file": "MFD_WIRING_AUDIT.md",
+          "lines": "29-43",
+          "claim": "Audit finding W10 says Inbox read state is regenerated display state and not durable.",
+          "quotedSourceEvidence": "InboxTriage.tsx:60-78"
+        },
+        {
+          "kind": "current_source",
+          "file": "apps/web/src/features/inbox/InboxTriage.tsx",
+          "lines": "47-83",
+          "claim": "The current source panel says selectedMsg/filter/replay state is React only and does not write read receipts, browser storage, or GameState."
+        },
+        {
+          "kind": "current_source",
+          "file": "apps/web/src/features/inbox/buildInboxMessages.ts",
+          "lines": "138-207",
+          "claim": "Inbox messages already carry stable ids, sender/type/read flags, and owner-personality/apology-thread inputs."
+        }
+      ],
+      "assumptions": [
+        "Browser-local receipts are acceptable because this is a clarity convenience, not dynasty-critical history.",
+        "The sidecar should be included in combined backup only in a later portability slice if user value warrants it."
+      ],
+      "falsificationEvidence": [
+        "A current source check showing Inbox already persists read receipts across reloads for regenerated messages.",
+        "A product decision that read receipts must travel with .mfd cartridges, which would force a save-schema proposal instead of this sidecar slice."
+      ],
+      "sliceDefinition": {
+        "playerMomentOrCpuTrigger": "Player opens Inbox, reads or dismisses a message, leaves the route, and returns later in the same dynasty.",
+        "decisionOrPolicy": "Mark message ids as read for the current dynasty only; clear stale entries when message ids no longer appear.",
+        "stateRead": "Read regenerated InboxMessage ids, dynasty id/current team context, and browser-local receipt map.",
+        "stateMutation": "Write only browser-local receipt sidecar entries such as mfd.inbox.read.v1:<dynastyId>. Do not mutate GameState in this slice.",
+        "deterministicResolutionRules": "Message generation remains pure and deterministic from selectors. Read state overlays by exact id lookup with no RNG or wall-clock dependence except optional pruning metadata.",
+        "immediateReceipt": "The message row loses New status, urgent counts update, and source copy labels browser-local read receipt ownership.",
+        "laterCallback": "Returning to Inbox in the same browser/dynasty preserves cleared messages; new message ids still surface as unread.",
+        "saveAndMigrationImpact": "No SAVE_VERSION change. If later moved into GameState, add types, schema, migrations, defaults, and old-save tests.",
+        "existingRouteAndSystemIntegrations": [
+          "apps/web/src/features/inbox/InboxTriage.tsx",
+          "apps/web/src/features/inbox/buildInboxMessages.ts",
+          "apps/web/src/lib or features/inbox sidecar helper"
+        ],
+        "tests": [
+          "apps/web/src/features/inbox/InboxTriage.test.tsx for mark-read behavior and source copy",
+          "sidecar helper unit tests for per-dynasty isolation and malformed data recovery",
+          "focused browser reload smoke if a local app target is available"
+        ],
+        "acceptanceMetrics": [
+          "Read message remains read after route remount and hard reload.",
+          "Different dynasty id does not inherit read receipts.",
+          "No GameState, save schema, sim, RNG, or engine files are changed."
+        ],
+        "rollbackBoundary": "Revert Inbox route/helper/tests. Existing browser-local mfd.inbox.read.v1 keys can be ignored or removed; no save repair is required."
+      }
+    },
+    {
+      "id": "g7-release-certificate",
+      "title": "G7 Release Certificate",
+      "summary": "Convert the current stitched release evidence into a clean release certificate: one uninterrupted default local release-gate pass, then one remote GitHub Actions release-gate pass from the real repository, with ledgers updated only after proof exists.",
+      "briefAlignment": ["trust", "clarity"],
+      "complexity": "M",
+      "confidence": "high",
+      "recommendedDisposition": "now",
+      "scoring": {
+        "playerImpact": 6,
+        "trustImprovement": 10,
+        "intelligenceExplainability": 1,
+        "consequenceStrength": 2,
+        "dynastyMemoryCompounding": 3,
+        "reuseOfExistingSystems": 9,
+        "technicalFeasibility": 7,
+        "deterministicTestability": 10,
+        "saveMigrationSafety": 10,
+        "cognitiveLoadEffect": 7,
+        "total": 65
+      },
+      "evidence": [
+        {
+          "kind": "current_ledger",
+          "file": "RELEASE_CONVERGENCE.md",
+          "lines": "1-47",
+          "claim": "G1-G6 are green and CI release-gate wiring exists, but G7 remains YELLOW until one uninterrupted local pass and one remote CI proof exist."
+        },
+        {
+          "kind": "current_ledger",
+          "file": "STATUS.md",
+          "lines": "1-40",
+          "claim": "The latest targeted patch ran focused web tests, recursive typecheck, and randomness scan, but not the full release gate."
+        },
+        {
+          "kind": "audit",
+          "file": "MFD_MASTER_AUDIT_REPORT.md",
+          "lines": "13-31",
+          "claim": "The original release verdict was YELLOW because wide public release needed stronger release proof.",
+          "quotedSourceEvidence": "scripts/release-gate.mjs:76-202, RELEASE_CONVERGENCE.md, .github/workflows/ci.yml, .github/workflows/deploy.yml"
+        }
+      ],
+      "assumptions": [
+        "This proposal is an operational trust slice rather than gameplay implementation.",
+        "Remote proof requires the real git repository or a push/PR/dispatch path, which this extracted checkout may not have."
+      ],
+      "falsificationEvidence": [
+        "A current RELEASE_CONVERGENCE.md entry showing a post-repair uninterrupted default 36/36 local pass plus remote GitHub Actions release-gate pass.",
+        "A repository setting or workflow change proving the release-gate job is already protected and required."
+      ],
+      "sliceDefinition": {
+        "playerMomentOrCpuTrigger": "Release operator prepares a public build or release-candidate handoff.",
+        "decisionOrPolicy": "Do not claim G7 GREEN until the exact default release gate passes locally in one uninterrupted run and the remote release-gate job passes from the real repository.",
+        "stateRead": "Read scripts/release-gate.mjs, RELEASE_CONVERGENCE.md, STATUS.md, package scripts, and GitHub Actions workflow result.",
+        "stateMutation": "No GameState mutation. Update release ledgers/docs only after proof exists.",
+        "deterministicResolutionRules": "Use the existing deterministic release-gate steps, Math.random audit, playtests, shadow regression, and browser smokes without changing thresholds during the certificate run.",
+        "immediateReceipt": "A release-certificate ledger entry with exact command, step count, runtime, failing/passing step names, and environment notes.",
+        "laterCallback": "Remote CI badge/protected-check status becomes the release blocker for future public artifacts.",
+        "saveAndMigrationImpact": "No save/schema impact.",
+        "existingRouteAndSystemIntegrations": [
+          "scripts/release-gate.mjs",
+          ".github/workflows/ci.yml",
+          "RELEASE_CONVERGENCE.md",
+          "STATUS.md",
+          "docs/release/MFD_RELEASE_CANDIDATE_HANDOFF.md"
+        ],
+        "tests": [
+          "node scripts/release-gate.mjs",
+          "Remote GitHub Actions release-gate job via push, PR, or workflow_dispatch"
+        ],
+        "acceptanceMetrics": [
+          "Local gate reports 36/36 in one uninterrupted default command.",
+          "Remote release-gate job is green for the same code state.",
+          "Release docs state exactly what passed and do not reuse stitched proof as final proof."
+        ],
+        "rollbackBoundary": "Revert only documentation or workflow-protection edits if needed. No runtime rollback."
+      }
+    },
+    {
+      "id": "shared-action-receipt-contract",
+      "title": "Shared Action Receipt Contract",
+      "summary": "Promote the scattered route-local receipt pattern into a shared contract starting with accepted trades, so major actions consistently return what changed, why it happened, source state, and later callback hooks.",
+      "briefAlignment": ["trust", "intelligence", "consequence", "clarity", "memory"],
+      "complexity": "M",
+      "confidence": "high",
+      "recommendedDisposition": "next",
+      "scoring": {
+        "playerImpact": 8,
+        "trustImprovement": 8,
+        "intelligenceExplainability": 7,
+        "consequenceStrength": 8,
+        "dynastyMemoryCompounding": 6,
+        "reuseOfExistingSystems": 8,
+        "technicalFeasibility": 7,
+        "deterministicTestability": 8,
+        "saveMigrationSafety": 7,
+        "cognitiveLoadEffect": 8,
+        "total": 75
+      },
+      "evidence": [
+        {
+          "kind": "audit",
+          "file": "MFD_WIRING_AUDIT.md",
+          "lines": "29-43",
+          "claim": "Audit finding W26 says trade accept returns empty events/consequences despite news/social side effects.",
+          "quotedSourceEvidence": "trade-market.ts:406-477"
+        },
+        {
+          "kind": "current_source",
+          "file": "packages/engine/src/systems/trade-market.ts",
+          "lines": "406-477",
+          "claim": "acceptTradeOffer mutates players/picks/cap, tx logs, press conferences, league news, and social feed, then returns events: [] and consequences: []."
+        },
+        {
+          "kind": "current_ledger",
+          "file": "CODEX_IMPROVEMENT_PLAN.md",
+          "lines": "58-59",
+          "claim": "Many acquisition routes now render market receipts, but the plan still advises behavior work or durable history only with explicit tests."
+        }
+      ],
+      "assumptions": [
+        "The first slice should define a minimal non-persistent EngineOutput receipt before adding saved eventLog history.",
+        "Routes can render the receipt from the resolved action result or from already-mutated saved fields while the contract matures."
+      ],
+      "falsificationEvidence": [
+        "A current accepted-trade source path that already returns structured events/consequences consumed by Trade Center.",
+        "A single shared receipt type already used by trades, draft trades, free agency, cuts, depth changes, and press responses."
+      ],
+      "sliceDefinition": {
+        "playerMomentOrCpuTrigger": "Player accepts a generated trade or submits another major roster/acquisition action.",
+        "decisionOrPolicy": "Every major action returns a structured receipt with changed assets, source inputs, deterministic reason, warnings, and suggested follow-up route.",
+        "stateRead": "Read action inputs, prior team/player/cap/pick state, scenario constraints, route forecasts, and existing news/social/press side effects.",
+        "stateMutation": "For first slice, mutate existing action state only and populate EngineOutput.events/consequences. Persisting receipts into GameState eventLog is a later save-schema slice.",
+        "deterministicResolutionRules": "Receipt fields are deterministic pure summaries of the accepted action and existing state; any social/news RNG remains on existing seeded paths.",
+        "immediateReceipt": "Trade Center displays a standardized Action Receipt after accept/submit/counter with assets moved, cap delta, roster risk, news/social/press side effects, and follow-up route.",
+        "laterCallback": "Later slices can feed the same receipt into Inbox, team history, or eventLog once save schema is tightened.",
+        "saveAndMigrationImpact": "No migration for first EngineOutput-only version. Persisted receipt history would require GameState/eventLog schema and old-save tests.",
+        "existingRouteAndSystemIntegrations": [
+          "packages/engine/src/types or systems EngineOutput contract",
+          "packages/engine/src/systems/trade-market.ts",
+          "apps/web/src/features/trades/TradeCenter.tsx",
+          "apps/web/src/app/store/game-store.ts"
+        ],
+        "tests": [
+          "packages/engine/src/systems/trade-market.test.ts accepted-trade receipt",
+          "apps/web/src/features/trades/TradeCenter.test.tsx receipt render",
+          "focused source tests ensuring no route-only private receipt schema diverges"
+        ],
+        "acceptanceMetrics": [
+          "Accepted trade no longer returns empty events/consequences.",
+          "Receipt describes every player/pick movement and cap-sync side effect.",
+          "No new save fields are introduced in v1."
+        ],
+        "rollbackBoundary": "Revert shared receipt type, accepted-trade receipt population, and UI/tests. Existing trade behavior remains unchanged if receipt rendering is removed."
+      }
+    },
+    {
+      "id": "press-conference-low-stakes-consequence",
+      "title": "Low-Stakes Press Conference Consequences",
+      "summary": "Turn quote-only press conferences into a bounded, deterministic consequence system using existing saved queues/effects/news hooks, while preserving the current truth that game results are final.",
+      "briefAlignment": ["consequence", "memory", "clarity"],
+      "complexity": "M",
+      "confidence": "medium",
+      "recommendedDisposition": "next",
+      "scoring": {
+        "playerImpact": 7,
+        "trustImprovement": 5,
+        "intelligenceExplainability": 4,
+        "consequenceStrength": 8,
+        "dynastyMemoryCompounding": 7,
+        "reuseOfExistingSystems": 7,
+        "technicalFeasibility": 6,
+        "deterministicTestability": 7,
+        "saveMigrationSafety": 5,
+        "cognitiveLoadEffect": 6,
+        "total": 62
+      },
+      "evidence": [
+        {
+          "kind": "audit",
+          "file": "MFD_WIRING_AUDIT.md",
+          "lines": "29-43",
+          "claim": "Audit finding W06 says press conferences are quote-only.",
+          "quotedSourceEvidence": "PressConferenceModal.tsx:101-111, game-store.ts:2623-2631"
+        },
+        {
+          "kind": "current_source",
+          "file": "apps/web/src/features/game-day/PressConferenceModal.tsx",
+          "lines": "119-129",
+          "claim": "The current modal says the answer changes only the saved quote and not game result, headline, owner reaction, player changes, news, social reaction, or next-week state."
+        },
+        {
+          "kind": "current_source",
+          "file": "apps/web/src/app/store/game-store.ts",
+          "lines": "2685-2694",
+          "claim": "respondToPressConference currently writes selectedTier and selectedResponse only."
+        }
+      ],
+      "assumptions": [
+        "Effects should be bounded and legible, not hidden global modifiers.",
+        "The first consequence set should avoid retroactively changing completed game results."
+      ],
+      "falsificationEvidence": [
+        "A current source path showing press response tier already changes owner/player/media/news or next-week state.",
+        "A product decision that press conferences should remain cosmetic roleplay only."
+      ],
+      "sliceDefinition": {
+        "playerMomentOrCpuTrigger": "Player answers a postgame press conference after a notable game or transaction.",
+        "decisionOrPolicy": "High/mid/low response tier applies one small, labeled effect such as owner patience, morale, media sentiment, or social/news framing, capped by scenario context.",
+        "stateRead": "Read pressConferenceQueue entry, selected tier/response, team owner/personality context, recent result/transaction context, existing off-field/timed-effect systems, and seed.",
+        "stateMutation": "Write selected response plus one bounded existing effect/news/social entry if the existing schema can represent it. If not, add explicit schema/migration coverage before persisting.",
+        "deterministicResolutionRules": "Tier mapping is deterministic from context and selected tier. Any stochastic flavor uses the existing seeded RNG channel, not render-time randomness.",
+        "immediateReceipt": "Press modal shows a Podium Consequence receipt before and after selection with effect magnitude, duration, and no retroactive result change.",
+        "laterCallback": "Inbox, newsroom, or Monday Briefing can resurface the quote/effect while the duration is active.",
+        "saveAndMigrationImpact": "Likely touches saved postGameUi/recentPressConferences/activeEffects or news/social arrays. If field shapes change, update types, Zod schema, migrations, seed defaults, and old-save tests.",
+        "existingRouteAndSystemIntegrations": [
+          "apps/web/src/features/game-day/PressConferenceModal.tsx",
+          "apps/web/src/app/store/game-store.ts",
+          "packages/engine/src/systems/press-conference.ts",
+          "packages/engine/src/systems/off-field-events or activeEffects"
+        ],
+        "tests": [
+          "focused store tests for response tier consequences",
+          "PressConferenceModal tests for preview and receipt copy",
+          "save/schema/migration tests if any persistent shape changes",
+          "bash scripts/check-math-random.sh"
+        ],
+        "acceptanceMetrics": [
+          "Each tier has a clear bounded effect and rollback path.",
+          "Completed game result remains unchanged.",
+          "Old saves without the new effect data still load."
+        ],
+        "rollbackBoundary": "Revert store consequence mapping, UI receipt, tests, and any schema migration. If a new save version is introduced, rollback requires migration policy rather than simple source revert."
+      }
+    },
+    {
+      "id": "long-history-schema-hardening",
+      "title": "Long-History Save Schema Hardening",
+      "summary": "Tighten one permissive long-history save island per slice, starting with ScheduledGame.result or weekSummaries, so deep dynasties fail early on corrupt data instead of surfacing broken history years later.",
+      "briefAlignment": ["trust", "memory", "clarity"],
+      "complexity": "L",
+      "confidence": "high",
+      "recommendedDisposition": "next",
+      "scoring": {
+        "playerImpact": 6,
+        "trustImprovement": 9,
+        "intelligenceExplainability": 1,
+        "consequenceStrength": 3,
+        "dynastyMemoryCompounding": 7,
+        "reuseOfExistingSystems": 6,
+        "technicalFeasibility": 6,
+        "deterministicTestability": 9,
+        "saveMigrationSafety": 4,
+        "cognitiveLoadEffect": 8,
+        "total": 59
+      },
+      "evidence": [
+        {
+          "kind": "audit",
+          "file": "MFD_MASTER_AUDIT_REPORT.md",
+          "lines": "32-87",
+          "claim": "The master audit ranks permissive long-history save fields as a trust risk.",
+          "quotedSourceEvidence": "schema.ts:1777, 2038, 2052-2054, 2070-2074, 2100-2113, 2214"
+        },
+        {
+          "kind": "current_source",
+          "file": "packages/engine/src/save/schema.ts",
+          "lines": "1649,1777,2038,2052-2054,2070-2074,2100-2113,2214",
+          "claim": "The current schema still has z.any and passthrough islands for several long-history structures."
+        },
+        {
+          "kind": "current_source",
+          "file": "packages/engine/src/config/difficulty.ts",
+          "lines": "1-73",
+          "claim": "SAVE_VERSION remains 36, so any persistent schema tightening must preserve old-save import behavior deliberately."
+        }
+      ],
+      "assumptions": [
+        "A narrow schema family per slice is safer than trying to type every z.any island at once.",
+        "Malformed historical rows should be migrated, sanitized, or rejected with diagnostics depending on player data risk."
+      ],
+      "falsificationEvidence": [
+        "A current save/schema source check showing the named history family is already fully typed and validated.",
+        "Golden old-save tests showing malformed rows are already normalized before SaveStateSchema validation."
+      ],
+      "sliceDefinition": {
+        "playerMomentOrCpuTrigger": "Player imports or loads a long-running dynasty with years of game results, summaries, playoff data, records, and history.",
+        "decisionOrPolicy": "Tighten one high-value history family first and define compatibility behavior for missing/malformed legacy rows.",
+        "stateRead": "Read current type definitions, SaveStateSchema, migrations, historical fixtures, current generated v36 fixture policy, and all consumers of the selected history field.",
+        "stateMutation": "Mutate save parsing/migration behavior only. Runtime game state shape changes only if the selected family already has a TypeScript type contract.",
+        "deterministicResolutionRules": "Migration/sanitization is pure and deterministic from raw save payload; no RNG or wall-clock data.",
+        "immediateReceipt": "Import/load diagnostics name the first schema issue paths clearly when a save cannot be repaired.",
+        "laterCallback": "Deep history routes become safer because corrupt rows are rejected or normalized at import time.",
+        "saveAndMigrationImpact": "Save-sensitive by definition. Requires TypeScript types, Zod schema, migration/defaults if needed, golden/generated fixture updates, old-save tests, and SAVE_VERSION policy decision.",
+        "existingRouteAndSystemIntegrations": [
+          "packages/engine/src/save/schema.ts",
+          "packages/engine/src/save/migrations.ts",
+          "packages/engine/src/types/sim.ts or season/history types",
+          "apps/web/src/app/store/persistence.ts"
+        ],
+        "tests": [
+          "pnpm --filter @mfd/engine test -- save",
+          "golden-saves and save-round-trip tests",
+          "consumer tests for the selected history field",
+          "old-save malformed-row import test"
+        ],
+        "acceptanceMetrics": [
+          "Selected z.any island is replaced by a bounded schema.",
+          "Old representative saves still migrate and parse.",
+          "Malformed representative rows produce deterministic repair or concise diagnostics."
+        ],
+        "rollbackBoundary": "Revert schema/migration/type/test changes. If SAVE_VERSION is incremented, rollback must preserve migration continuity and fixture policy."
+      }
+    },
+    {
+      "id": "formation-aware-lineup-validation",
+      "title": "Formation-Aware Lineup Validation",
+      "summary": "Upgrade Depth Chart readiness from raw starter counts to formation/package validity, so the player knows whether the selected offense, defense, and special teams can actually field the required roles.",
+      "briefAlignment": ["trust", "clarity", "consequence"],
+      "complexity": "M",
+      "confidence": "medium",
+      "recommendedDisposition": "later",
+      "scoring": {
+        "playerImpact": 7,
+        "trustImprovement": 7,
+        "intelligenceExplainability": 2,
+        "consequenceStrength": 5,
+        "dynastyMemoryCompounding": 3,
+        "reuseOfExistingSystems": 7,
+        "technicalFeasibility": 7,
+        "deterministicTestability": 9,
+        "saveMigrationSafety": 9,
+        "cognitiveLoadEffect": 8,
+        "total": 64
+      },
+      "evidence": [
+        {
+          "kind": "audit",
+          "file": "MFD_WIRING_AUDIT.md",
+          "lines": "29-43",
+          "claim": "Audit finding W12 says the Depth Chart starter target is not formation validation.",
+          "quotedSourceEvidence": "DepthChart.tsx:85-90, 215-221"
+        },
+        {
+          "kind": "current_source",
+          "file": "apps/web/src/features/depth-chart/DepthChart.tsx",
+          "lines": "81-100,210-223",
+          "claim": "The current readout counts marked starters against position targets and does not inspect package-specific role legality."
+        },
+        {
+          "kind": "current_source",
+          "file": "CODEX_GAME_GUIDE.md",
+          "lines": "3197",
+          "claim": "The guide warns that GameState.players and Team.roster must stay synchronized when moving or editing players."
+        }
+      ],
+      "assumptions": [
+        "This can be a pure read-model first, with no lineup mutation beyond existing depth chart actions.",
+        "Package definitions should reuse existing positions/schemes constants rather than inventing route-only football rules."
+      ],
+      "falsificationEvidence": [
+        "A current helper that already validates depth chart against offensive/defensive formation packages and is rendered on Depth Chart.",
+        "Sim code proving invalid formation starter counts cannot affect game outcomes and the UI count is intentionally sufficient."
+      ],
+      "sliceDefinition": {
+        "playerMomentOrCpuTrigger": "Player edits starters, returners, or game-plan formation before advancing a game week.",
+        "decisionOrPolicy": "Compute formation validity per selected scheme/package and surface exact missing/overloaded roles without auto-moving players.",
+        "stateRead": "Read roster, player positions, starter flags, injuries, depth chart assignments, special teams assignments, selected offensive/defensive schemes, and existing position/scheme constants.",
+        "stateMutation": "None for first read-model slice. Existing setStarter/returner actions remain the only commit paths.",
+        "deterministicResolutionRules": "Pure deterministic validation from current roster and scheme/package data.",
+        "immediateReceipt": "Depth Chart shows package readiness, missing role list, and the next safe route/action.",
+        "laterCallback": "Monday Briefing or Action Center can flag unresolved formation-invalid state before game simulation.",
+        "saveAndMigrationImpact": "No save/schema impact if pure read-model. Persisting package-specific lineup state would require full save work.",
+        "existingRouteAndSystemIntegrations": [
+          "apps/web/src/features/depth-chart/DepthChart.tsx",
+          "packages/engine/src/config/positions.ts",
+          "packages/engine/src/config/schemes.ts",
+          "apps/web/src/features/monday-briefing/ActionCenter.tsx"
+        ],
+        "tests": [
+          "focused pure helper tests for valid/missing/extra/injured package roles",
+          "DepthChart component tests for source copy and missing-role display",
+          "Monday Briefing test only if unresolved invalid state is surfaced there"
+        ],
+        "acceptanceMetrics": [
+          "A roster with 22 starters but missing package role is flagged accurately.",
+          "No roster movement or save mutation occurs from validation render.",
+          "Existing depth chart starter tests continue to pass."
+        ],
+        "rollbackBoundary": "Revert helper/UI/tests. No save or engine state repair required if kept read-only."
+      }
+    }
+  ]
+}
