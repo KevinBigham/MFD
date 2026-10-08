@@ -1,7 +1,7 @@
 import type { GameState, Player, Position, Team } from '../types';
+import { DEFAULT_MENTOR_BUDGET } from '../config/mentors';
 import { getFranchiseLegends } from './franchise-legends';
 
-const DEFAULT_MENTOR_BUDGET = 2.5;
 const MENTOR_SALARY = 0.5;
 const MAX_AVAILABLE_MENTORS = 5;
 const MAX_PLAYERS_PER_MENTOR = 3;

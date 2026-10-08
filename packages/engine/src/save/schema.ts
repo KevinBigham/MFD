@@ -6,9 +6,18 @@
  */
 
 import { z } from 'zod';
+import { DEFAULT_MENTOR_BUDGET } from '../config/mentors';
 import { createDefaultAchievements } from '../systems/achievements';
 import { normalizeGmStrategy } from '../systems/gm-strategies';
 import { ACHIEVEMENT_CONDITION_TYPES } from '../types';
+import {
+  AlumniMentorSchema,
+  DynastyEraSchema,
+  FranchiseBlueprintSchema,
+  PendingPassedPickTargetSchema,
+  SetupStateSchema,
+  TrainingCampReportSchema,
+} from './durable-feature-state';
 
 const ScoutingRegionSchema = z.enum(['east', 'south', 'midwest', 'west']);
 const ProspectRiskBandSchema = z.enum(['unknown', 'safe', 'balanced', 'volatile']);
@@ -2588,6 +2597,7 @@ export const SaveStateSchema = z.object({
     powerRankingHistory: [],
   }),
   franchiseHistory: z.array(FranchiseHistoryEntrySchema),
+  userDynastyEras: z.array(DynastyEraSchema).default([]),
   playerArchive: z.array(PlayerArchiveEntrySchema),
   playerSeasonHistory: z.record(z.string(), z.array(PlayerSeasonHistoryEntrySchema)).default({}),
   playerRivalries: z.array(PlayerRivalrySchema).default([]),
@@ -2668,6 +2678,10 @@ export const SaveStateSchema = z.object({
     currentStreak: 0,
     adjustmentHistory: [],
   }),
+  activeMentors: z.array(AlumniMentorSchema).default([]),
+  // The cross-field guard below distinguishes an unused legacy mentor block
+  // from a populated contract whose spending history cannot be reconstructed.
+  mentorBudget: z.number().finite().nonnegative().optional(),
   availableMedicalStaff: z.array(MedicalStaffSchema).default([]),
   playoffMomentum: z.record(z.string(), PlayoffMomentumSchema).default({}),
   scoutingDepartment: ScoutingDepartmentSchema.default({
@@ -2723,6 +2737,7 @@ export const SaveStateSchema = z.object({
   opponentReports: z.array(OpponentReportSchema).default([]),
   draftRecaps: z.array(DraftRecapSchema).default([]),
   tradeSuggestions: z.array(TradeSuggestionSchema).default([]),
+  trainingCampResults: z.array(TrainingCampReportSchema).default([]),
   postGameUi: PostGameUiStateSchema.default({
     pressConferenceQueue: [],
     audioCueQueue: [],
@@ -2734,9 +2749,12 @@ export const SaveStateSchema = z.object({
   earnedDoctrines: z.array(EarnedDoctrineSchema).default([]),
   nearMissTracker: NearMissTrackerSchema.optional(),
   seasonNearMissReceipts: z.array(NearMissEntrySchema).default([]),
+  pendingPassedPickTargets: z.array(PendingPassedPickTargetSchema).default([]),
   activeCallYourShot: ShotDeclarationSchema.optional(),
   apologyTourThreads: z.array(ApologyTourThreadSchema).default([]),
   lastPortableExportYear: z.number().nullable().default(null),
+  setupState: SetupStateSchema.optional(),
+  franchiseBlueprint: FranchiseBlueprintSchema.optional(),
   ceremonies: z.array(CeremonySchema).default([]),
   dynastyTimeline: z.array(DynastyEventSchema).default([]),
   storylineThreads: z.array(StorylineThreadSchema).default([]),
@@ -2751,6 +2769,17 @@ export const SaveStateSchema = z.object({
   memoryGraph: DynastyMemoryGraphSchema.default({ nodes: [], edges: [] }),
   navigationMode: z.enum(['gm', 'nerd']).default('gm'),
   onboardingMode: z.enum(['instant', 'guided', 'full_gm']).default('guided'),
-});
+}).superRefine((state, context) => {
+  if (state.activeMentors.length > 0 && state.mentorBudget === undefined) {
+    context.addIssue({
+      code: z.ZodIssueCode.custom,
+      path: ['mentorBudget'],
+      message: 'A saved mentor budget is required when active mentors are present; spending cannot be reconstructed.',
+    });
+  }
+}).transform((state) => ({
+  ...state,
+  mentorBudget: state.mentorBudget ?? DEFAULT_MENTOR_BUDGET,
+}));
 
 export type SaveState = z.infer<typeof SaveStateSchema>;

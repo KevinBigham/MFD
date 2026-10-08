@@ -4,7 +4,7 @@ Browser-based football franchise dynasty simulation. Build a team, manage the ca
 
 ### ▶︎ [Play Now → kevinbigham.github.io/MFD](https://kevinbigham.github.io/MFD/)
 
-**Version:** v1.0.0 · **Save schema:** v37
+**Version:** v1.0.0 · **Save schema:** v38
 
 ## Screenshots
 
@@ -95,7 +95,7 @@ node scripts/generate-chip-v3-art.cjs
 
 ## Release Notes
 
-See [CHANGELOG.md](CHANGELOG.md). v1.0.0 now uses save schema v37 for the causal event ledger, decision receipts, durable CPU plans, compressed game memory, and per-dynasty navigation preferences.
+See [CHANGELOG.md](CHANGELOG.md). v1.0.0 now uses save schema v38, preserving mentor contracts and budget, named eras, camp reports, pending draft receipts, and setup progress/blueprints alongside the causal event ledger, decision receipts, durable CPU plans, compressed game memory, and per-dynasty navigation preferences.
 
 ## License
 

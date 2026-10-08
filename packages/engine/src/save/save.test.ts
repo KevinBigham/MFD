@@ -125,8 +125,8 @@ function makeAchievement(overrides: Record<string, unknown> = {}): Record<string
 }
 
 describe('SaveStateSchema', () => {
-  it('uses save version 37 for causal spine and franchise-plan persistence', () => {
-    expect(SAVE_VERSION).toBe(37);
+  it('uses save version 38 for durable feature-state preservation', () => {
+    expect(SAVE_VERSION).toBe(38);
   });
 
   it('validates a minimal valid save', () => {

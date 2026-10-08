@@ -1,7 +1,26 @@
 import { describe, expect, it } from 'vitest';
 import { createSeedGameState } from './seed';
+import { SAVE_VERSION } from '@mfd/engine';
 
 describe('seed game state', () => {
+  it('initializes durable feature defaults and keeps the new-game setup lifecycle', () => {
+    const first = createSeedGameState(42, 0, 'pro');
+    const second = createSeedGameState(42, 0, 'pro');
+    expect(first.version).toBe(SAVE_VERSION);
+    expect(first.activeMentors).toEqual([]);
+    expect(first.mentorBudget).toBe(2.5);
+    expect(first.userDynastyEras).toEqual([]);
+    expect(first.trainingCampResults).toEqual([]);
+    expect(first.pendingPassedPickTargets).toEqual([]);
+    expect(first.setupState?.currentPhase).toBe('choose_agm');
+    expect(first.setupState?.completedPhases).toEqual([]);
+    expect(first.franchiseBlueprint).toBeUndefined();
+    expect(first.activeMentors).not.toBe(second.activeMentors);
+    expect(first.userDynastyEras).not.toBe(second.userDynastyEras);
+    expect(first.trainingCampResults).not.toBe(second.trainingCampResults);
+    expect(first.pendingPassedPickTargets).not.toBe(second.pendingPassedPickTargets);
+  });
+
   it('initializes player archive entries for the seeded league', () => {
     const game = createSeedGameState(42, 0, 'pro');
     const userTeam = Object.values(game.teams).find((team) => team.isUser)!;

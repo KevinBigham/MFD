@@ -31,6 +31,7 @@ export {
   getSchemeFlavorLine, HOME_FIELD_ADV,
   ARCHETYPES, ARCH_BOOST, COACH_TRAITS, ARCH_TRAIT_POOLS, CLIQUE_TYPES,
   DIFF_SETTINGS, SAVE_VERSION, getDefaultDifficultyFlags, getDefaultHalftimeDecisionSetting,
+  DEFAULT_MENTOR_BUDGET,
   ROSTER_CAP, CAMP_CAP, PS_CAP, MIN_SALARY, CAP_MATH,
   getSalaryCap, getCapFloor, getMinSalary,
 } from './config';

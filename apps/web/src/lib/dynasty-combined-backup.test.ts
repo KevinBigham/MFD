@@ -10,6 +10,11 @@ import {
   parseDynastyCombinedBackupJson,
 } from './dynasty-combined-backup';
 import type { DynastySidecarArchivePayload } from './dynasty-sidecar-archive';
+import { loadImportedCartridge } from '../app/store/persistence';
+import {
+  createPopulatedDurableState,
+  durableFeatureState,
+} from '../app/store/durable-feature-state.test-helpers';
 
 function makeCartridgeJson(): string {
   const cartridge = buildCartridge(
@@ -79,6 +84,18 @@ function makeSidecarPayload(): DynastySidecarArchivePayload {
 }
 
 describe('dynasty-combined-backup', () => {
+  it('preserves populated v37 durable fields through envelope decode and the shared game loader', () => {
+    const game = createPopulatedDurableState();
+    game.version = 37;
+    const built = buildCartridge(game);
+    if (!built.ok) throw new Error(built.error);
+    const parsed = parseDynastyCombinedBackupJson(exportDynastyCombinedBackupJson(built.json, makeSidecarPayload()));
+    if (!parsed.ok) throw new Error(parsed.reason);
+    const loaded = loadImportedCartridge(parsed.cartridgeText);
+    expect(durableFeatureState(loaded)).toEqual(durableFeatureState(game));
+    expect(parsed.sidecarPayload).toEqual(makeSidecarPayload());
+  });
+
   it('exports a versioned package with a valid .mfd cartridge and sidecar payload', () => {
     const json = exportDynastyCombinedBackupJson(
       makeCartridgeJson(),

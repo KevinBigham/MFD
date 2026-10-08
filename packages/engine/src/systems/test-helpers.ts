@@ -12,6 +12,7 @@ import {
   getDefaultHalftimeDecisionSetting,
 } from '../index';
 import { createEmptyRecordBook } from './records';
+import { DEFAULT_MENTOR_BUDGET } from '../config/mentors';
 import type { GameState, GameDayState, Player, Team } from '../types';
 
 export function createEmptyGameDayState(): GameDayState {
@@ -255,6 +256,11 @@ export function makeLeagueState(
 
   return {
     version: SAVE_VERSION,
+    userDynastyEras: [],
+    activeMentors: [],
+    mentorBudget: DEFAULT_MENTOR_BUDGET,
+    trainingCampResults: [],
+    pendingPassedPickTargets: [],
     seed: 42,
     year: 2026,
     week,
